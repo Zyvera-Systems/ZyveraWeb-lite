@@ -85,7 +85,8 @@ class ZyveraWebLite : JavaPlugin() {
             httpServer!!.executor = executor
             httpServer!!.start()
 
-            logger.info("HTTP server running on http://$host:$port")
+            val domain = config.getString("server.domain")
+            logger.info("HTTP server running on http://$domain:$port")
         } catch (e: Exception) {
             logger.severe("Failed to start HTTP server")
             e.printStackTrace()
@@ -99,8 +100,8 @@ class ZyveraWebLite : JavaPlugin() {
         }
 
         try {
-            val host = getConfig().getString("server.host")
-            val port = getConfig().getInt("https.port")
+            val host = config.getString("server.host")
+            val port = config.getInt("https.port")
 
             val certFile: String = "" + dataFolder + "/ssl/" + getConfig().getString("https.SSLPubl")
             val keyFile: String = "" + dataFolder + "/ssl/" + getConfig().getString("https.SSLPriv")
@@ -130,7 +131,8 @@ class ZyveraWebLite : JavaPlugin() {
             httpsServer!!.executor = executor
             httpsServer!!.start()
 
-            logger.info("HTTPS server running on https://$host:$port")
+            val domain = config.getString("server.domain")
+            logger.info("HTTPS server running on https://$domain:$port")
         } catch (e: Exception) {
             logger.severe("Failed to start HTTPS server")
             e.printStackTrace()
