@@ -8,5 +8,5 @@ http:
 https:
   enabled: false
   port: 8443
-  keystore: "keystore.jks"
-  password: "changeit"
+  SSLPubl: fullchain.pem
+  SSLPriv: privkey.pem

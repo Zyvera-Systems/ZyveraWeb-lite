@@ -8,7 +8,12 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.io.FileInputStream
 import java.net.InetSocketAddress
+import java.security.KeyFactory
 import java.security.KeyStore
+import java.security.PrivateKey
+import java.security.SecureRandom
+import java.security.cert.CertificateFactory
+import java.security.spec.PKCS8EncodedKeySpec
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import javax.net.ssl.KeyManagerFactory
@@ -24,12 +29,10 @@ class ZyveraWebLite : JavaPlugin() {
     override fun onEnable() {
         saveDefaultConfig()
 
-        // Create thread pool based on CPU cores (safe + performant)
         executor = Executors.newFixedThreadPool(
             max(4, Runtime.getRuntime().availableProcessors())
         )
 
-        // Ensure www folder exists
         val wwwFolder = File(dataFolder, "www")
         if (!wwwFolder.exists()) {
             logger.info("Creating default files")
@@ -39,7 +42,11 @@ class ZyveraWebLite : JavaPlugin() {
             saveResource("www/index.html", false)
             saveResource("www/style.css", false)
             saveResource("www/script.js", false)
+        }
 
+        val sslFolder = File(dataFolder, "ssl")
+        if (!sslFolder.exists()) {
+            sslFolder.mkdir()
         }
 
         startHttp(wwwFolder)
@@ -95,19 +102,15 @@ class ZyveraWebLite : JavaPlugin() {
             val host = getConfig().getString("server.host")
             val port = getConfig().getInt("https.port")
 
-            val keystoreFile = File(
-                dataFolder,
-                getConfig().getString("https.keystore").toString()
-            )
+            val certFile: String = "" + dataFolder + "/ssl/" + getConfig().getString("https.SSLPubl")
+            val keyFile: String = "" + dataFolder + "/ssl/" + getConfig().getString("https.SSLPriv")
 
-            if (!keystoreFile.exists()) {
-                logger.warning("Keystore not found -> HTTPS not started.")
+            if (!File(certFile).exists() || !File(keyFile).exists()) {
+                logger.info("SSL public or private key file does not exist, HTTPS disabled!")
                 return
             }
 
-            val password = getConfig().getString("https.password")!!.toCharArray()
-
-            val sslContext = createSSLContext(keystoreFile, password)
+            val sslContext: SSLContext = getSslContext(certFile, keyFile)
 
             httpsServer = HttpsServer.create(InetSocketAddress(host, port), 0)
 
@@ -115,7 +118,6 @@ class ZyveraWebLite : JavaPlugin() {
                 override fun configure(params: HttpsParameters) {
                     val sslParams = sslContext.defaultSSLParameters
 
-                    // 🔐 Enforce modern TLS
                     sslParams.protocols = arrayOf("TLSv1.3", "TLSv1.2")
 
                     params.setSSLParameters(sslParams)
@@ -136,21 +138,54 @@ class ZyveraWebLite : JavaPlugin() {
     }
 
     @Throws(Exception::class)
-    private fun createSSLContext(keystoreFile: File, password: CharArray?): SSLContext {
-        val keyStore = KeyStore.getInstance("JKS")
+    private fun getSslContext(certFile: String, keyFile: String): SSLContext {
 
-        FileInputStream(keystoreFile).use { fis ->
-            keyStore.load(fis, password)
-        }
+        val certFactory = CertificateFactory.getInstance("X.509")
+        val certInput = FileInputStream(certFile)
+        val certs = certFactory.generateCertificates(certInput)
+        certInput.close()
+
+        val cert = certs.first() as java.security.cert.X509Certificate
+
+        val keyBytes = File(keyFile).readText()
+            .replace("-----BEGIN PRIVATE KEY-----", "")
+            .replace("-----END PRIVATE KEY-----", "")
+            .replace("\\s".toRegex(), "")
+
+        val decodedKey = java.util.Base64.getDecoder().decode(keyBytes)
+
+        val keySpec = PKCS8EncodedKeySpec(decodedKey)
+        val privateKey = getPrivateKey(keySpec)
+
+        val keyStore = KeyStore.getInstance("PKCS12")
+        keyStore.load(null, null)
+
+        keyStore.setKeyEntry(
+            "alias",
+            privateKey,
+            "password".toCharArray(),
+            arrayOf(cert)
+        )
+
         val kmf = KeyManagerFactory.getInstance("SunX509")
-        kmf.init(keyStore, password)
+        kmf.init(keyStore, "password".toCharArray())
 
         val tmf = TrustManagerFactory.getInstance("SunX509")
-        tmf.init(keyStore)
+        tmf.init(null as KeyStore?)
 
         val sslContext = SSLContext.getInstance("TLS")
-        sslContext.init(kmf.keyManagers, tmf.trustManagers, null)
+        sslContext.init(kmf.keyManagers, tmf.trustManagers, SecureRandom())
 
         return sslContext
+    }
+
+    private fun getPrivateKey(keySpec: PKCS8EncodedKeySpec): PrivateKey? {
+        try {
+            return KeyFactory.getInstance("RSA").generatePrivate(keySpec)
+        } catch (_: Exception) {}
+        try {
+            return KeyFactory.getInstance("EC").generatePrivate(keySpec)
+        } catch (_: Exception) {}
+        return null
     }
 }

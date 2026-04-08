@@ -12,7 +12,6 @@ class FileHandler(private val root: File) : HttpHandler {
     override fun handle(exchange: HttpExchange) {
         val requestPath = exchange.requestURI.getPath()
 
-        // 🔒 Normalize path (SECURITY CRITICAL)
         val resolved = root.toPath().resolve(".$requestPath").normalize()
 
         if (!resolved.startsWith(root.toPath())) {
