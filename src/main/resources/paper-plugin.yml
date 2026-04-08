@@ -1,0 +1,9 @@
+name: ZyveraWeb-lite
+prefix: ZyveraWeb
+version: '$version'
+
+main: dev.zyverasystems.zyveraWebLite.ZyveraWebLite
+api-version: '1.21.11'
+load: POSTWORLD
+
+authors: [thepixel3261]
