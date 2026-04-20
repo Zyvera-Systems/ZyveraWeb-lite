@@ -150,8 +150,12 @@ class ZyveraWebLite : JavaPlugin() {
         val cert = certs.first() as java.security.cert.X509Certificate
 
         val keyBytes = File(keyFile).readText()
+            .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+            .replace("-----END RSA PRIVATE KEY-----", "")
             .replace("-----BEGIN PRIVATE KEY-----", "")
             .replace("-----END PRIVATE KEY-----", "")
+            .replace("-----BEGIN EC PRIVATE KEY-----", "")
+            .replace("-----END EC PRIVATE KEY-----", "")
             .replace("\\s".toRegex(), "")
 
         val decodedKey = java.util.Base64.getDecoder().decode(keyBytes)
