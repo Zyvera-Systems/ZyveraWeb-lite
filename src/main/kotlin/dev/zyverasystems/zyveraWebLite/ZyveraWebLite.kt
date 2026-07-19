@@ -27,7 +27,7 @@ import kotlin.math.max
 class ZyveraWebLite : JavaPlugin() {
     val ERROR_TRACKER: ErrorTracker = ErrorTracker.contextAware()
 
-    private val context: BukkitContext = BukkitContext.Factory(this, "YOUR_TOKEN")
+    private val context: BukkitContext = BukkitContext.Factory(this, "4ed9ed85041f1081fd40d8a18cdc6a3b")
         .errorTrackerService(ERROR_TRACKER)
         .metrics { factory -> factory
             .addMetric(Metric.bool("premium") { false })
