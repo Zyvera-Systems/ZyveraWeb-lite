@@ -4,6 +4,9 @@ import com.sun.net.httpserver.HttpServer
 import com.sun.net.httpserver.HttpsConfigurator
 import com.sun.net.httpserver.HttpsParameters
 import com.sun.net.httpserver.HttpsServer
+import dev.faststats.ErrorTracker
+import dev.faststats.bukkit.BukkitContext
+import dev.faststats.data.Metric
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.io.FileInputStream
@@ -22,11 +25,23 @@ import javax.net.ssl.TrustManagerFactory
 import kotlin.math.max
 
 class ZyveraWebLite : JavaPlugin() {
+    val ERROR_TRACKER: ErrorTracker = ErrorTracker.contextAware()
+
+    private val context: BukkitContext = BukkitContext.Factory(this, "YOUR_TOKEN")
+        .errorTrackerService(ERROR_TRACKER)
+        .metrics { factory -> factory
+            .addMetric(Metric.bool("premium") { false })
+            .create()
+        }
+        .create()
+
     private var httpServer: HttpServer? = null
     private var httpsServer: HttpsServer? = null
     private var executor: ExecutorService? = null
 
     override fun onEnable() {
+        context.ready()
+
         saveDefaultConfig()
 
         executor = Executors.newFixedThreadPool(
@@ -65,6 +80,8 @@ class ZyveraWebLite : JavaPlugin() {
         if (executor != null) {
             executor!!.shutdownNow()
         }
+
+        context.shutdown()
     }
 
     private fun startHttp(wwwFolder: File) {

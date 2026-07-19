@@ -7,11 +7,17 @@ plugins {
 
 repositories {
     mavenCentral()
+
+    maven {
+        name = "faststatsReleases"
+        url = uri("https://repo.faststats.dev/releases")
+    }
 }
 
 dependencies {
     paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("dev.faststats.metrics:bukkit:0.27.2")
 }
 
 kotlin {
@@ -25,6 +31,8 @@ tasks {
 
     shadowJar {
         archiveClassifier = ""
+
+        relocate("dev.faststats", "dev.zyverasystems.zyveraWebLite.lib.dev.faststats")
     }
 
     runServer {
